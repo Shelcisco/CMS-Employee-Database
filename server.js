@@ -101,7 +101,7 @@ function addDepartment() {
         .then((res) => {
             const sql = `INSERT INTO departments (name) VALUES ("${res.name}")`;
             db.promise().query(sql)
-                .then(mainPage())
+                .then(start())
                 .catch((err) =>
                     console.error(err));
         });
@@ -110,15 +110,12 @@ function addDepartment() {
 
 //View all roles function
 function viewAllRoles() {
-    connection.query(
-        'SELECT role.id, role.title, department.name AS department, role.salary FROM role LEFT JOIN department ON role.department_id = department.id',
-        (err, res) => {
-            if (err) throw err;
-            console.log('\n');
-            console.table(res);
-            start();
-        }
-    );
+    connection.query('SELECT * FROM roles', (err, res) => {
+        if (err) throw err;
+        console.log('\n');
+        console.table(res);
+        start();
+    });
 }
 
 function addRole() {
@@ -143,7 +140,7 @@ function addRole() {
             const sql = `INSERT INTO roles (title, salary, department_id) VALUES
                         ("${res.title}","${res.salary}","${res.department_id}");`;
             db.promise().query(sql)
-                .then(mainPage())
+                .then(start())
                 .catch((err) =>
                     console.error(err));
         });
@@ -152,17 +149,13 @@ function addRole() {
 
 // View all employees function
 function viewAllEmployees() {
-    connection.query(
-        'SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, " ", manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id',
-        (err, res) => {
-            if (err) throw err;
-            console.log('\n');
-            console.table(res);
-            start();
-        }
-    );
+    connection.query('SELECT * FROM employees', (err, res) => {
+        if (err) throw err;
+        console.log('\n');
+        console.table(res);
+        start();
+    });
 }
-
 
 function addEmployee() {
     inquirer.prompt([
