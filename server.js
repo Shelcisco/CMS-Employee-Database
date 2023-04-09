@@ -3,12 +3,9 @@ const mysql = require('mysql2');
 const cTable = require('console.table');
 require('dotenv').config();
 
-
-
 const db = mysql.createConnection(
     {
         host: "localhost",
-        PORT: 3001,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME
@@ -21,8 +18,8 @@ const db = mysql.createConnection(
 function start() {
     inquirer
         .prompt({
-            name: 'Menu',
             type: 'list',
+            name: 'menu',
             message: 'What would you like to do?',
             choices: [
                 'View all departments',
@@ -36,8 +33,10 @@ function start() {
             ],
         })
         .then((answer) => {
+            console.log('You selected the option', answer.menu);
             switch (answer.menu) {
                 case 'View all departments':
+                    console.log('switch ran');
                     viewAllDepartments();
                     break;
 
@@ -66,7 +65,7 @@ function start() {
                     break;
 
                 case 'Exit':
-                    connection.end();
+                    db.end();
                     break;
 
                 default:
@@ -79,15 +78,14 @@ function start() {
 
 //View all departments function
 function viewAllDepartments() {
-    connection.query('SELECT * FROM department', (err, res) => {
+    console.log('inside viewAllDepartments');
+    db.query('SELECT * FROM department', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
         start();
     });
 }
-
-
 
 function addDepartment() {
 
@@ -107,16 +105,15 @@ function addDepartment() {
         });
 };
 
-
 //View all roles function
 function viewAllRoles() {
-    connection.query('SELECT * FROM roles', (err, res) => {
+    db.query('SELECT * FROM roles', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
         start();
     });
-}
+};
 
 function addRole() {
     inquirer.prompt([
@@ -146,10 +143,9 @@ function addRole() {
         });
 };
 
-
 // View all employees function
 function viewAllEmployees() {
-    connection.query('SELECT * FROM employees', (err, res) => {
+    db.query('SELECT * FROM employees', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
