@@ -9,7 +9,7 @@ name VARCHAR(40) NOT NULL
 );
 
 CREATE TABLE role (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(40),
     salary DECIMAL,
     department_id INT,
@@ -20,8 +20,9 @@ CREATE TABLE employee (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(40) NOT NULL,
     last_name VARCHAR(40) NOT NULL,
-    role_id INT NOT NULL,
+    role_id INT UNSIGNED NOT NULL,
+    INDEX role_ind (role_id),
+    CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES role(id),
     manager_id INT,
-    FOREIGN KEY (role_id) REFERENCES roles(id),
     FOREIGN KEY (manager_id) REFERENCES employee(id)
 );

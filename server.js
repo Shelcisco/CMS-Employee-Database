@@ -87,6 +87,22 @@ function viewAllDepartments() {
     });
 }
 
+function getDepartmentNames() {
+    return new Promise(function (res,rej) {
+        db.query( { sql: 'SELECT JSON_ARRAYAGG(name) FROM department;', rowsAsArray: true }, 
+        (err,result) => { 
+            if (err) {
+                console.log(err);
+            return; 
+            }
+            // console.log (result); 
+            return (result);
+        }
+
+        )
+    }) 
+}
+
 function addDepartment() {
 
     inquirer.prompt([
@@ -107,7 +123,7 @@ function addDepartment() {
 
 //View all roles function
 function viewAllRoles() {
-    db.query('SELECT * FROM roles', (err, res) => {
+    db.query('SELECT * FROM role', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
@@ -115,7 +131,8 @@ function viewAllRoles() {
     });
 };
 
-function addRole() {
+async function addRole() {
+    const departmentNames= await getDepartmentNames ();
     inquirer.prompt([
         {
             name: "title",
@@ -129,8 +146,10 @@ function addRole() {
         },
         {
             name: "department_id",
-            type: "input",
+            type: "list",
             message: "Which department does the role belong to?",
+
+            choices: departmentNames
         }
     ])
         .then((res) => {
