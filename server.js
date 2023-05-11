@@ -88,19 +88,21 @@ function viewAllDepartments() {
 }
 
 function getDepartmentNames() {
-    return new Promise(function (res,rej) {
-        db.query( { sql: 'SELECT JSON_ARRAYAGG(name) FROM department;', rowsAsArray: true }, 
-        (err,result) => { 
-            if (err) {
-                console.log(err);
-            return; 
+    return new Promise(function (res, rej) {
+        db.query({ sql: 'SELECT JSON_ARRAYAGG(name) FROM department;', rowsAsArray: true },
+            (err, result) => {
+                if (err) {
+                    rej(err)
+                }
+                const roles = [];
+                result[0][0].forEach(role => roles.push(role))
+
+                // console.log (result); 
+                res(roles);
             }
-            // console.log (result); 
-            return (result);
-        }
 
         )
-    }) 
+    })
 }
 
 function addDepartment() {
@@ -113,7 +115,7 @@ function addDepartment() {
         }
     ])
         .then((res) => {
-            const sql = `INSERT INTO departments (name) VALUES ("${res.name}")`;
+            const sql = `INSERT INTO department (name) VALUES ("${res.name}")`;
             db.promise().query(sql)
                 .then(start())
                 .catch((err) =>
@@ -123,7 +125,7 @@ function addDepartment() {
 
 //View all roles function
 function viewAllRoles() {
-    db.query('SELECT * FROM role', (err, res) => {
+    db.query('SELECT role.id, title, department.name AS department, salary FROM role INNER JOIN department ON role.department_id = department.id;', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
@@ -132,39 +134,49 @@ function viewAllRoles() {
 };
 
 async function addRole() {
-    const departmentNames= await getDepartmentNames ();
-    inquirer.prompt([
-        {
-            name: "title",
-            type: "input",
-            message: "What is the name of the new role?",
-        },
-        {
-            name: "salary",
-            type: "input",
-            message: "What is the salary of the role?",
-        },
-        {
-            name: "department_id",
-            type: "list",
-            message: "Which department does the role belong to?",
+    getDepartmentNames().then((departmentNames) => {
+        inquirer.prompt([
+            {
+                name: "title",
+                type: "input",
+                message: "What is the name of the new role?",
+            },
+            {
+                name: "salary",
+                type: "input",
+                message: "What is the salary of the role?",
+            },
+            {
+                name: "department",
+                type: "list",
+                message: "Which department does the role belong to?",
 
-            choices: departmentNames
-        }
-    ])
-        .then((res) => {
-            const sql = `INSERT INTO roles (title, salary, department_id) VALUES
-                        ("${res.title}","${res.salary}","${res.department_id}");`;
-            db.promise().query(sql)
-                .then(start())
-                .catch((err) =>
-                    console.error(err));
-        });
+                choices: departmentNames
+            }
+        ])
+            .then((res) => {
+                var department_id = 0;
+                for (var i = 0; i < departmentNames.length; i++) {
+                    if (departmentNames[i] == res.department) {
+                        department_id = i + 1;
+                        break
+                    }
+                }
+                const sql = `INSERT INTO role (title, salary, department_id) VALUES
+                            ("${res.title}","${res.salary}","${department_id}");`;
+                db.promise().query(sql)
+                    .then(start())
+                    .catch((err) =>
+                        console.error(err));
+            });
+
+    })
+  
 };
 
 // View all employees function
 function viewAllEmployees() {
-    db.query('SELECT * FROM employees', (err, res) => {
+    db.query('SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, manager.first_name AS manager FROM employee JOIN role ON employee.role_id = role.id LEFT JOIN employee manager ON manager.id = employee.manager_id JOIN department ON role.department_id=department.id;', (err, res) => {
         if (err) throw err;
         console.log('\n');
         console.table(res);
@@ -173,60 +185,150 @@ function viewAllEmployees() {
 }
 
 function addEmployee() {
-    inquirer.prompt([
-        {
-            name: "firstName",
-            type: "input",
-            message: "What is the employee's first name?",
-        },
-        {
-            name: "lastName",
-            type: "input",
-            message: "What is the employee's last name?",
-        },
-        {
-            name: "roleId",
-            type: "input",
-            message: "What is the employee's role?",
-        },
-        {
-            name: "managerId",
-            type: "input",
-            message: "Who is the employee's manager?",
-        }
-    ])
-        .then((res) => {
-            const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES
-                        ("${res.firstName}","${res.lastName}","${res.roleId}","${res.managerId}");`;
-            db.promise().query(sql)
-                .then(mainPage())
-                .catch((err) =>
-                    console.error(err));
-        });
+    getEmployeeNames().then((employeeNames) => {
+        getRoleNames().then((roleNames) => {
+            inquirer.prompt([
+                {
+                    name: "firstName",
+                    type: "input",
+                    message: "What is the employee's first name?",
+                },
+                {
+                    name: "lastName",
+                    type: "input",
+                    message: "What is the employee's last name?",
+                },
+                {
+                    name: "role",
+                    type: "list",
+                    message: "What is the employee's role?",
+                    choices: roleNames
+                },
+                {
+                    name: "manager",
+                    type: "list",
+                    message: "Who is the employee's manager?",
+                    choices: [...employeeNames, "None"]
+                }
+            ])
+                .then((res) => {
+                    var role_id = 0;
+                    var manager_id = 0;
+                    if (res.manager == "None") {
+                        manager_id = null
+                    }
+                    else {
+                        for (var i = 0; i < employeeNames.length; i++) {
+                            if (employeeNames[i] == res.manager) {
+                                manager_id = i + 1;
+                                break
+                            }
+                        }
+
+                    }
+                    for (var i = 0; i < roleNames.length; i++) {
+                        if (roleNames[i] == res.role) {
+                            role_id = i + 1;
+                            break
+                        }
+                    }
+                    const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES
+                            ("${res.firstName}","${res.lastName}",${role_id}, ${manager_id});`;
+                    db.promise().query(sql)
+                        .then(start())
+                        .catch((err) =>
+                            console.error(err));
+                });
+
+        })
+    })
+
+
 };
 
 function updateEmployeeRole() {
-    inquirer.prompt([
-        {
-            name: "employeeId",
-            type: "input",
-            message: "what is the employee id number would you like to update?"
-        },
-        {
-            name: "roleId",
-            type: "input",
-            message: "Which employee's role do you want to update?"
-        }
-    ])
-        .then((res) => {
-            const sql = `UPDATE employees SET roleId = "${res.roleId}"
-                        WHERE id = "${res.employeeId}";`;
+    getEmployeeNames().then((employeeNames) => {
+        getRoleNames().then((roleNames) => {
+            inquirer.prompt([
 
-            db.promise().query(sql)
-                .then(mainPage())
-                .catch((err) =>
-                    console.error(err));
-        });
+                {
+                    name: "employee",
+                    type: "list",
+                    message: "Which employee's role do you want to update?",
+                    choices: employeeNames
+                },
+                {
+                    name: "role",
+                    type: "list",
+                    message: "What's the employee's new role?",
+                    choices: roleNames
+                }
+
+            ])
+                .then((res) => {
+                    var role_id = 0;
+                    var manager_id = 0;
+                    for (var i = 0; i < employeeNames.length; i++) {
+                        if (employeeNames[i] == res.manager) {
+                            manager_id = i + 1;
+                            break
+                        }
+                    }
+
+
+                    for (var i = 0; i < roleNames.length; i++) {
+                        if (roleNames[i] == res.role) {
+                            role_id = i + 1;
+                            break
+                        }
+                    }
+                    const sql = `UPDATE employee SET role_id = "${role_id}"
+                    WHERE id = "${manager_id}";`;
+                    db.promise().query(sql)
+                        .then(start())
+                        .catch((err) =>
+                            console.error(err));
+                });
+
+        })
+    })
+
+
 };
+
+function getRoleNames() {
+    return new Promise(function (res, rej) {
+        db.query({ sql: 'SELECT JSON_ARRAYAGG(title) FROM role;', rowsAsArray: true },
+            (err, result) => {
+                if (err) {
+                    rej(err)
+                }
+                const roles = [];
+                result[0][0].forEach(role => roles.push(role))
+
+                res(roles);
+            }
+
+        )
+    })
+}
+
+function getEmployeeNames() {
+    return new Promise(function (res, rej) {
+        db.query({ sql: 'SELECT JSON_ARRAYAGG(CONCAT(first_name," ", last_name)) FROM employee;', rowsAsArray: true },
+            (err, result) => {
+                if (err) {
+                    rej(err)
+                }
+                const roles = [];
+                result[0][0].forEach(role => roles.push(role))
+                res(roles);
+            }
+
+        )
+    })
+}
+
+
 
 start();
