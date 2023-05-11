@@ -16,7 +16,7 @@ VALUES (1, "VP Sales", 150000),
        (4, "HR Director", 110000),
        (4, "HR Specialist", 80000),
        (5, "Product Development Director", 220000),
-       (5, "Engineer", 150000, 110000),
+       (5, "Engineer", 150000),
        (5, "Front-end Web Developer", 120000);
 
 
